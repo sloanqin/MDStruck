@@ -15,4 +15,4 @@ run matconvnet/matlab/vl_setupnn ;
 addpath('pretraining');
 addpath('tracking');
 addpath('utils');
-addpath('tracking');
+addpath('mex');

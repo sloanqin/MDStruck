@@ -105,7 +105,7 @@ examples = gen_samples('radial', targetLoc, opts.svm_samples, opts, 2, 5);
 
 feat_conv = mdnet_features_convX(net_conv, img, examples, opts);
 feat_fc4 = mdnet_features_fc4(net_fc, feat_conv, opts);
-total_data{:,:,1,1} = feat_fc4(:,:,:,:);
+total_data{:,:,1,1} = double(feat_fc4(:,:,:,:));
 total_data{:,:,2,1} = examples;
 total_data{:,:,3,1} = examples - repmat(targetLoc,[size(examples,1),1]);
 
@@ -145,15 +145,26 @@ for To = 2:nFrames;
     spf = tic;
     %% Estimation
     % draw target candidates
-    examples = gen_samples('pixel', targetLoc, opts.svm_eval_samples, opts, trans_f, scale_f);
+    mdnet_features_convX_Time = tic;
+    %examples = gen_samples('pixel', targetLoc, opts.svm_eval_samples, opts, trans_f, scale_f);
+    examples = gen_samples('gaussian', targetLoc, opts.nSamples, opts, trans_f, scale_f);
     feat_conv = mdnet_features_convX(net_conv, img, examples, opts);
 	feat_fc4 = mdnet_features_fc4(net_fc, feat_conv, opts);
-    total_data{:,:,1,To} = feat_fc4(:,:,:,:);
+    total_data{:,:,1,To} = double(feat_fc4(:,:,:,:));
     total_data{:,:,2,To} = examples;
     total_data{:,:,3,To} = examples - repmat(targetLoc,[size(examples,1),1]); 
+    mdnet_features_convX_Time = toc(mdnet_features_convX_Time);
+    fprintf('mdnet_features_convX_Time %f seconds\n',mdnet_features_convX_Time);
    
     % evaluate the candidates
-    scores = st_svm_eval(To);
+    st_svm_eval_Time = tic;
+    [ svs_feats, svs_beta, kernerl_sigma, xs_feats ] = prep_eval_data( To );
+    scores = st_svm_eval(svs_feats, svs_beta, kernerl_sigma, xs_feats);
+    st_svm_eval_Time = toc(st_svm_eval_Time);
+    fprintf('st_svm_eval_Time %f seconds\n',st_svm_eval_Time);
+        fprintf('sample num is: %d \n',size(xs_feats,2));
+    
+    %scores1 = st_svm_eval1(To);
     [scores,idx] = sort(scores,'descend');
     target_score = scores(1,1);
     targetLoc = examples(idx(1,1),:);
@@ -203,7 +214,10 @@ for To = 2:nFrames;
         end
     end
     
+    st_svm_update_Time = tic;
 	st_svm_update(To, whether_process_new);
+    st_svm_update_Time = toc(st_svm_update_Time);
+    fprintf('st_svm_update_Time %f seconds\n',st_svm_update_Time);
     
     spf = toc(spf);
     fprintf('%f seconds\n',spf);

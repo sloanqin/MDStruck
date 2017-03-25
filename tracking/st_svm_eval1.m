@@ -1,4 +1,4 @@
-function [ results ] = st_svm_eval(x_ind)
+function [ results ] = st_svm_eval1(x_ind)
 % st_svm_eval
 % Main interface for structured svm
 % eval the results for every examples in frame x_ind
