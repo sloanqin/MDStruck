@@ -61,7 +61,11 @@ global total_data;
 % gradient is -f(x,y) since loss=0
 xi = squeeze(total_data{1,1,1,x_ind}(:,:,:,1));
 yi_rela = squeeze(total_data{1,1,3,x_ind}(:,:,:,1));
-ip = addSupportVector(x_ind, 1, -st_svm_evaluate(xi, yi_rela));
+[ svs_feats, svs_beta, kernerl_sigma ] = prep_evaluate_data();
+%ip = addSupportVector(x_ind, 1, -st_svm_evaluate(xi, yi_rela));%replaced
+%by cpp function
+st_svm_evaluate_result = st_svm_evaluate(svs_feats, svs_beta, kernerl_sigma, double(xi));
+ip = addSupportVector(x_ind, 1, -st_svm_evaluate_result);
 
 [y_ind, min_grad] = minGradient(x_ind); % find min(gradient) of y
 in = addSupportVector(x_ind, y_ind, min_grad);
@@ -88,6 +92,9 @@ function [ sv_ind ] = addSupportVector(x_ind, y_ind, grad)
 % declare global variables
 global st_svm; 
 global total_data;
+
+x_ind = uint32(x_ind);
+y_ind = uint32(y_ind);
 
 % new support vector
 supportVector.b = 0;
@@ -176,8 +183,12 @@ yi = ys(1,:);
 
 % traverse all x of this support pattern and compute grad
 % find the minium grad
+[ svs_feats, svs_beta, kernerl_sigma ] = prep_evaluate_data();
 for i=1:size(xs,2)
-	grad = -loss(yi,ys(i,:)) - st_svm_evaluate(xs(:,i),y_relas(i,:));
+	%grad = -loss(yi,ys(i,:)) -
+	%st_svm_evaluate(xs(:,i),y_relas(i,:));replaced by cpp function
+    st_svm_evaluate_result = st_svm_evaluate(svs_feats, svs_beta, kernerl_sigma, double(xs(:,i)));
+    grad = -loss(yi,ys(i,:)) - st_svm_evaluate_result;
 	if grad<min_grad
 		min_grad = grad;
 		y_ind = i;
@@ -219,8 +230,12 @@ yi = ys(1,:);
 
 % traverse all x of this support pattern and compute grad
 % find the minium grad
+[ svs_feats, svs_beta, kernerl_sigma ] = prep_evaluate_data();
 for i=1:size(xs,2)
-	grad = -loss(yi,ys(i,:)) - st_svm_evaluate(xs(:,i),y_relas(i,:));
+	%grad = -loss(yi,ys(i,:)) -
+	%st_svm_evaluate(xs(:,i),y_relas(i,:));replaced by cpp function
+    st_svm_evaluate_result = st_svm_evaluate(svs_feats, svs_beta, kernerl_sigma, double(xs(:,i)));
+    grad = -loss(yi,ys(i,:)) - st_svm_evaluate_result;
 	if grad>max_grad
 		max_grad = grad;
 		y_ind = i;
@@ -544,6 +559,7 @@ end
 
 % update gradients
 % TODO: this could be made cheaper by just adjusting incrementally rather than recomputing
+[ svs_feats, svs_beta, kernerl_sigma ] = prep_evaluate_data();
 for i=1:uint32(size(st_svm.supportVectors,1))
 	x_ind = st_svm.supportVectors{i,1}.x_ind;
 	y_ind = st_svm.supportVectors{i,1}.y_ind;
@@ -552,7 +568,10 @@ for i=1:uint32(size(st_svm.supportVectors,1))
 	y = squeeze(total_data{1,1,2,x_ind}(y_ind,:));
 	y_rela = squeeze(total_data{1,1,3,x_ind}(y_ind,:));
 	x = squeeze(total_data{1,1,1,x_ind}(:,:,:,y_ind));
-	st_svm.supportVectors{i,1}.g = -loss(y,yi) - st_svm_evaluate(x,y_rela);
+	%st_svm.supportVectors{i,1}.g = -loss(y,yi) -
+	%st_svm_evaluate(x,y_rela);repalced by cpp function
+    st_svm_evaluate_result = st_svm_evaluate(svs_feats, svs_beta, kernerl_sigma, double(x));
+    st_svm.supportVectors{i,1}.g = -loss(y,yi) - st_svm_evaluate_result;
 end
 
 end

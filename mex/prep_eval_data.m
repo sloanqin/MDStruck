@@ -18,26 +18,9 @@ function [ svs_feats, svs_beta, kernerl_sigma, xs_feats ] = prep_eval_data( x_in
 global st_svm; 
 global total_data;
 
-svs = cell2mat(st_svm.supportVectors);
-svs_beta = [svs(:).b]';
-
-svs_x_ind = [svs(:).x_ind]';
-svs_y_ind = [svs(:).y_ind]';
-feats_dimension = size(total_data{1,1,1,1}, 3);
-svs_feats = zeros(feats_dimension, size(svs_x_ind, 1));
-
-for i=1:size(svs_x_ind, 1)
-    svs_feats(:,i) = total_data{1,1,1,svs_x_ind(i,1)}(1,1,:,svs_y_ind(i,1));
-end
-
-kernerl_sigma = st_svm.kernerl_m_sigma;
+[ svs_feats, svs_beta, kernerl_sigma ] = prep_evaluate_data();
 
 xs_feats = squeeze(total_data{1,1,1,x_ind});
-
-% must be double data kind
-svs_feats = double(svs_feats);
-svs_beta = double(svs_beta);
-kernerl_sigma = double(kernerl_sigma);
 xs_feats = double(xs_feats);
 
 end

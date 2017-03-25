@@ -47,4 +47,10 @@ cmd = sprintf('mex %s %s', mex_flags, src);
 if opts.verbose > 0, disp(cmd); end
 if ~opts.dryrun, eval(cmd); end
 
+% Compile st_svm_evaluate.cpp
+src = 'st_svm_evaluate.cpp';
+cmd = sprintf('mex %s %s', mex_flags, src);
+if opts.verbose > 0, disp(cmd); end
+if ~opts.dryrun, eval(cmd); end
+
 end
