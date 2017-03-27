@@ -16,3 +16,4 @@ addpath('pretraining');
 addpath('tracking');
 addpath('utils');
 addpath('mex');
+addpath('debug');

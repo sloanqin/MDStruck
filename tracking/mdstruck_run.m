@@ -23,6 +23,8 @@ global total_data;
 %% Initialization
 fprintf('Initialization...\n');
 
+st_svms = cell(0,1);
+
 nFrames = length(images);
 
 img = imread(images{1});
@@ -95,6 +97,9 @@ if display
     
     figure(3);
     set(gcf,'Position',[200 100 600 400],'MenuBar','none','ToolBar','none');
+    
+        figure(4);
+    set(gcf,'Position',[200 100 800 600],'MenuBar','none','ToolBar','none');
 end
 
 %% Prepare training data for structured svm online update
@@ -127,6 +132,8 @@ mdstruck_init();
 st_svm.x_ind = 0;
 st_svm.targetScores = [st_svm.targetScores;1.0];
 st_svm_update(1, true);
+st_svms{1,1} = st_svm;
+st_svms{2,1} = st_svm;
 
 success_frames = 1;
 trans_f = opts.trans_f;	
@@ -139,6 +146,15 @@ for To = 2:nFrames;
     
     st_svm.x_ind = To;
     
+    % add new st_svm
+    if(mod(To,10)==0)
+        st_svms = [st_svms; st_svm];
+        if(size(st_svms,1)>4)
+            st_svms = st_svms(2:end,1);
+        end
+    end
+    st_svms{end,1} = st_svm;
+    
     img = imread(images{To});
     if(size(img,3)==1), img = cat(3,img,img,img); end
     
@@ -147,7 +163,7 @@ for To = 2:nFrames;
     % draw target candidates
     mdnet_features_convX_Time = tic;
     %examples = gen_samples('pixel', targetLoc, opts.svm_eval_samples, opts, trans_f, scale_f);
-    examples = gen_samples('gaussian', targetLoc, opts.nSamples, opts, trans_f, scale_f);
+    examples = gen_samples('gaussian_limit', targetLoc, opts.nSamples, opts, trans_f, scale_f);
     feat_conv = mdnet_features_convX(net_conv, img, examples, opts);
 	feat_fc4 = mdnet_features_fc4(net_fc, feat_conv, opts);
     total_data{:,:,1,To} = double(feat_fc4(:,:,:,:));
@@ -158,16 +174,29 @@ for To = 2:nFrames;
    
     % evaluate the candidates
     st_svm_eval_Time = tic;
-    [ svs_feats, svs_beta, kernerl_sigma, xs_feats ] = prep_eval_data( To );
-    scores = st_svm_eval(svs_feats, svs_beta, kernerl_sigma, xs_feats);
+    targetLocs = cell(0,1);
+    model_scores = cell(size(st_svms,1), 1);
+    for i=1:size(st_svms,1)
+        st_svm = st_svms{i,1};
+        [ svs_feats, svs_beta, kernerl_sigma, xs_feats ] = prep_eval_data( To );
+        scores = st_svm_eval(svs_feats, svs_beta, kernerl_sigma, xs_feats);
+        model_scores{i, 1} = scores;
+        if (To>0)
+            %plot_scores_map(examples, scores,i);
+        end       
+        %scores = st_svm_eval(To);
+        [scores,idx] = sort(scores,'descend');
+        target_score = scores(1,1);
+        targetLoc = examples(idx(1,1),:);
+        targetLocs = [targetLocs;targetLoc];
+%         fprintf('targetLoc %d is : ',i);
+%         targetLocs{i,1}
+%         fprintf('\n');
+    end
+    %calcu_similarity(model_scores);
     st_svm_eval_Time = toc(st_svm_eval_Time);
     fprintf('st_svm_eval_Time %f seconds\n',st_svm_eval_Time);
-        fprintf('sample num is: %d \n',size(xs_feats,2));
-    
-    %scores1 = st_svm_eval1(To);
-    [scores,idx] = sort(scores,'descend');
-    target_score = scores(1,1);
-    targetLoc = examples(idx(1,1),:);
+    fprintf('sample num is: %d \n',size(xs_feats,2));
     
     % final target
     result(To,:) = targetLoc;
@@ -222,12 +251,21 @@ for To = 2:nFrames;
     spf = toc(spf);
     fprintf('%f seconds\n',spf);
     
+    if (1)
+        continue;
+    end
+    
     %% Display
     if display
         figure(2);%qyy
         hc = get(gca, 'Children'); delete(hc(1:end-1));
         set(hd,'cdata',img); hold on;
-        
+            
+        colors = [0 1 0; 0 0 1;1 1 0;0 1 1];
+        for i=1:size(targetLocs,1)-1
+            rectangle('Position', targetLocs{i,1}, 'EdgeColor', colors(i,:), 'Linewidth', 3-0.5*i);
+            text(10, 30+i*15, num2str(i), 'Color', colors(i,:), 'FontWeight','bold', 'FontSize',10);
+        end
         rectangle('Position', result(To,:), 'EdgeColor', [1 0 0], 'Linewidth', 1);
         centerx = result(To-1,1) + result(To-1,3)/2 - opts.svm_eval_radius;
         centery = result(To-1,2) + result(To-1,4)/2 - opts.svm_eval_radius;
@@ -240,6 +278,9 @@ for To = 2:nFrames;
         drawnow;
         
         % sort and display supportvectors
+        if(1)
+            continue;
+        end
         supportVectors = cell2mat(st_svm.supportVectors);
         beta = reshape([supportVectors(:,1).b],[],1);
         [beta_sorted,index] = sort(beta,'descend');

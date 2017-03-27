@@ -794,7 +794,7 @@ function removeSupportVector(sv_ind)
 % declare global variables
 global st_svm; 
 
-fprintf('removeSupportVector %d\n',sv_ind);
+%fprintf('removeSupportVector %d\n',sv_ind);
 
 sv = st_svm.supportVectors{sv_ind,1};
 st_svm.supportPatterns{sv.sp_ind,1}.svCount = st_svm.supportPatterns{sv.sp_ind,1}.svCount - 1;

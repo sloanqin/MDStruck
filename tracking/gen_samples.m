@@ -26,6 +26,11 @@ switch (type)
     case 'gaussian'
         samples(:,1:2) = samples(:,1:2) + trans_f * round(mean(bb(3:4))) * max(-1,min(1,0.5*randn(n,2)));
         samples(:,3:4) = samples(:,3:4) .* repmat(opts.scale_factor.^(scale_f*max(-1,min(1,0.5*randn(n,1)))),1,2);
+    case 'gaussian_limit'
+        samples(:,1:2) = samples(:,1:2) + trans_f * round(mean(bb(3:4))) * max(-1,min(1,0.5*randn(n,2)));
+        samples(:,3:4) = samples(:,3:4) .* repmat(opts.scale_factor.^(scale_f*max(-1,min(1,0.5*randn(n,1)))),1,2);
+        samples(:,3) = max(st_svm.firstFrameTargetLoc(3)*0.7, min(st_svm.firstFrameTargetLoc(3)*1.3, samples(:,3)));
+        samples(:,4) = max(st_svm.firstFrameTargetLoc(4)*0.7, min(st_svm.firstFrameTargetLoc(4)*1.3, samples(:,4)));
     case 'uniform'
         samples(:,1:2) = samples(:,1:2) + trans_f * round(mean(bb(3:4))) * (rand(n,2)*2-1);
         samples(:,3:4) = samples(:,3:4) .* repmat(opts.scale_factor.^(scale_f*(rand(n,1)*2-1)),1,2);
