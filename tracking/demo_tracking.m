@@ -9,7 +9,7 @@ clear;
 
 algorithmName = 'MDStruck';
 %algorithmName = 'MDNet';
-seqname = 'singer2';
+seqname = 'shaking';
 conf = genConfig('otb',seqname);
 % conf = genConfig('vot2015','ball1');
 

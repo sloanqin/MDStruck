@@ -6,7 +6,7 @@
 %
 
 clear;
-otb50 = importdata('./dataset/OTB50_6.txt');
+otb50 = importdata('./dataset/OTB50Runed.txt');
 algorithmName = 'MDStruck';
 for i=1:size(otb50,1)
     seqname = otb50{i,1};

@@ -163,7 +163,7 @@ for To = 2:nFrames;
     % draw target candidates
     mdnet_features_convX_Time = tic;
     %examples = gen_samples('pixel', targetLoc, opts.svm_eval_samples, opts, trans_f, scale_f);
-    examples = gen_samples('gaussian_limit', targetLoc, opts.nSamples, opts, trans_f, scale_f);
+    examples = gen_samples('gaussian', targetLoc, opts.nSamples, opts, trans_f, scale_f);
     feat_conv = mdnet_features_convX(net_conv, img, examples, opts);
 	feat_fc4 = mdnet_features_fc4(net_fc, feat_conv, opts);
     total_data{:,:,1,To} = double(feat_fc4(:,:,:,:));
@@ -174,7 +174,7 @@ for To = 2:nFrames;
    
     % evaluate the candidates
     st_svm_eval_Time = tic;
-    targetLocs = cell(0,1);
+    targetLocs = cell(size(st_svms,1), 1);
     model_scores = cell(size(st_svms,1), 1);
     for i=1:size(st_svms,1)
         st_svm = st_svms{i,1};
@@ -188,11 +188,9 @@ for To = 2:nFrames;
         [scores,idx] = sort(scores,'descend');
         target_score = scores(1,1);
         targetLoc = examples(idx(1,1),:);
-        targetLocs = [targetLocs;targetLoc];
-%         fprintf('targetLoc %d is : ',i);
-%         targetLocs{i,1}
-%         fprintf('\n');
+        targetLocs{i, 1} = targetLoc;
     end
+    targetLoc = choose_target_loc(targetLocs);
     %calcu_similarity(model_scores);
     st_svm_eval_Time = toc(st_svm_eval_Time);
     fprintf('st_svm_eval_Time %f seconds\n',st_svm_eval_Time);
@@ -251,7 +249,7 @@ for To = 2:nFrames;
     spf = toc(spf);
     fprintf('%f seconds\n',spf);
     
-    if (1)
+    if (0)
         continue;
     end
     
