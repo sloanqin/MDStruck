@@ -147,7 +147,8 @@ for To = 2:nFrames;
     st_svm.x_ind = To;
     
     % add new st_svm
-    if(mod(To,10)==0)
+    interval = max(10, min(25, round(To/4)));
+    if(mod(To,interval)==0)
         st_svms = [st_svms; st_svm];
         if(size(st_svms,1)>4)
             st_svms = st_svms(2:end,1);
