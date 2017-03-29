@@ -177,6 +177,7 @@ for To = 2:nFrames;
     st_svm_eval_Time = tic;
     targetLocs = cell(size(st_svms,1), 1);
     model_scores = cell(size(st_svms,1), 1);
+    model_idxs = cell(size(st_svms,1), 1);
     for i=1:size(st_svms,1)
         st_svm = st_svms{i,1};
         [ svs_feats, svs_beta, kernerl_sigma, xs_feats ] = prep_eval_data( To );
@@ -190,8 +191,9 @@ for To = 2:nFrames;
         target_score = scores(1,1);
         targetLoc = examples(idx(1,1),:);
         targetLocs{i, 1} = targetLoc;
+        model_idxs{i, 1} = idx;
     end
-    targetLoc = choose_target_loc(targetLocs);
+    [targetLoc, model_ind] = choose_target_loc(targetLocs);
     %calcu_similarity(model_scores);
     st_svm_eval_Time = toc(st_svm_eval_Time);
     fprintf('st_svm_eval_Time %f seconds\n',st_svm_eval_Time);
@@ -210,9 +212,10 @@ for To = 2:nFrames;
     
     % bbox regression
     if(opts.bbreg && target_score>0)
-        X_ = permute(gather(feat_conv(:,:,:,idx(1:5))),[4,3,1,2]);
+        idx = model_idxs{model_ind, 1};
+        X_ = permute(gather(feat_conv(:,:,:,idx(1))),[4,3,1,2]);
         X_ = X_(:,:);
-        bbox_ = examples(idx(1:5),:);
+        bbox_ = examples(idx(1),:);
         pred_boxes = predict_bbox_regressor(bbox_reg.model, X_, bbox_);
         result(To,:) = round(mean(pred_boxes,1));
     end

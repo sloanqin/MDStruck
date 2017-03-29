@@ -1,8 +1,8 @@
 function [ feat ] = mdnet_features_fc4(net, ims, opts)
-% MDNET_FEATURES_FCX
-% Compute CNN scores from input features.
+% MDNET_FEATURES_FC4
+% Compute CNN full connection features from input conv features.
 %
-% Hyeonseob Nam, 2015
+% yuanyuan qin, 2017
 % 
 
 n = size(ims,4);

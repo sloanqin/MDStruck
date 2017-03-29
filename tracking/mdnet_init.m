@@ -16,8 +16,8 @@ opts.net_file = net;
 opts.batchSize_test = 256; % <- reduce it in case of out of gpu memory
 
 % bounding box regression
-%opts.bbreg = true;
-opts.bbreg = false;
+opts.bbreg = true;
+%opts.bbreg = false;
 opts.bbreg_nSamples = 1000;
 
 % learning policy
