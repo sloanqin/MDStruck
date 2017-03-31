@@ -109,7 +109,8 @@ total_data = cell(1,1,3,nFrames);
 examples = gen_samples('radial', targetLoc, opts.svm_samples, opts, 2, 5);
 
 feat_conv = mdnet_features_convX(net_conv, img, examples, opts);
-feat_fc4 = mdnet_features_fc4(net_fc, feat_conv, opts);
+%feat_fc4 = mdnet_features_fc4(net_fc, feat_conv, opts);
+feat_fc4 = prep_feat_conv_data(feat_conv);
 total_data{:,:,1,1} = double(feat_fc4(:,:,:,:));
 total_data{:,:,2,1} = examples;
 total_data{:,:,3,1} = examples - repmat(targetLoc,[size(examples,1),1]);
@@ -132,6 +133,7 @@ mdstruck_init();
 st_svm.x_ind = 0;
 st_svm.targetScores = [st_svm.targetScores;1.0];
 st_svm_update(1, true);
+first_frame_st_svm = st_svm;
 st_svms{1,1} = st_svm;
 st_svms{2,1} = st_svm;
 
@@ -140,6 +142,9 @@ trans_f = opts.trans_f;
 scale_f = opts.scale_f;
 
 %% Main loop
+update_cnt = 10;
+cur_model_contin_miss_cnt = 0;
+target_score = 1;
 for To = 2:nFrames;
     fprintf('Processing frame %d/%d... \n', To, nFrames);
 	fprintf('supportPatterns/supportVectors is %d/%d... \n', size(st_svm.supportPatterns,1), size(st_svm.supportVectors,1));
@@ -147,8 +152,10 @@ for To = 2:nFrames;
     st_svm.x_ind = To;
     
     % add new st_svm
-    interval = max(10, min(25, round(To/4)));
-    if(mod(To,interval)==0)
+    interval = max(10, min(st_svm.snapshot_interval, round(To/4)));
+    update_cnt = update_cnt  - 1;
+    if(update_cnt==0)
+        update_cnt = interval;
         st_svms = [st_svms; st_svm];
         if(size(st_svms,1)>4)
             st_svms = st_svms(2:end,1);
@@ -164,9 +171,10 @@ for To = 2:nFrames;
     % draw target candidates
     mdnet_features_convX_Time = tic;
     %examples = gen_samples('pixel', targetLoc, opts.svm_eval_samples, opts, trans_f, scale_f);
-    examples = gen_samples('gaussian', targetLoc, opts.nSamples, opts, trans_f, scale_f);
-    feat_conv = mdnet_features_convX(net_conv, img, examples, opts);
-	feat_fc4 = mdnet_features_fc4(net_fc, feat_conv, opts);
+    examples = gen_samples('gaussian', targetLoc, opts.nSamples, opts, st_svm.trans_f, st_svm.scale_f);
+    feat_conv = mdnet_features_convX(net_conv, img, examples, opts); 
+	%feat_fc4 = mdnet_features_fc4(net_fc, feat_conv, opts);
+    feat_fc4 = prep_feat_conv_data(feat_conv);
     total_data{:,:,1,To} = double(feat_fc4(:,:,:,:));
     total_data{:,:,2,To} = examples;
     total_data{:,:,3,To} = examples - repmat(targetLoc,[size(examples,1),1]); 
@@ -176,6 +184,7 @@ for To = 2:nFrames;
     % evaluate the candidates
     st_svm_eval_Time = tic;
     targetLocs = cell(size(st_svms,1), 1);
+    target_scores = cell(size(st_svms,1), 1);
     model_scores = cell(size(st_svms,1), 1);
     model_idxs = cell(size(st_svms,1), 1);
     for i=1:size(st_svms,1)
@@ -188,12 +197,32 @@ for To = 2:nFrames;
         end       
         %scores = st_svm_eval(To);
         [scores,idx] = sort(scores,'descend');
-        target_score = scores(1,1);
+        target_scores{i, 1} = scores(1,1);
         targetLoc = examples(idx(1,1),:);
         targetLocs{i, 1} = targetLoc;
         model_idxs{i, 1} = idx;
     end
     [targetLoc, model_ind] = choose_target_loc(targetLocs);
+    target_score = target_scores{model_ind, 1};
+    
+    %% restore model
+%     if(model_ind ~= size(st_svms,1))
+%         cur_model_contin_miss_cnt = cur_model_contin_miss_cnt + 1;
+%     else
+%         cur_model_contin_miss_cnt = 0;
+%     end
+%     center_distance = power( (targetLocs{size(st_svms,1), 1} - targetLocs{model_ind, 1}), 2);
+%     center_distance = (center_distance(1) + center_distance(2))^0.5;
+%     if(cur_model_contin_miss_cnt>=4 && center_distance>10)
+%         st_svm = st_svms{model_ind,1};
+%         st_svms{end,1} = st_svms{model_ind,1};
+%     end
+    
+%     fprintf('target_score is %f\n',target_score);
+%     fprintf('target_score is %f\n',target_score);
+%     fprintf('target_score is %f\n',target_score);
+%     fprintf('target_score is %f\n',target_score);
+%     fprintf('target_score is %f\n',target_score);
     %calcu_similarity(model_scores);
     st_svm_eval_Time = toc(st_svm_eval_Time);
     fprintf('st_svm_eval_Time %f seconds\n',st_svm_eval_Time);
@@ -204,28 +233,42 @@ for To = 2:nFrames;
     st_svm.targetScores = [st_svm.targetScores;target_score];
     
     % extend search space in case of failure
-    if(target_score<0)
+    if(target_score<st_svm.update_target_score_threshold )
         trans_f = min(1.5, 1.1*trans_f);
     else
-        trans_f = opts.trans_f;
+        trans_f = st_svm.trans_f;
     end
     
-    % bbox regression
-    if(opts.bbreg && target_score>0)
+    %% bbox regression
+    if(opts.bbreg) % if(opts.bbreg && target_score>0 ) qyy change
+        st_svms{end,1} = st_svm;
+        st_svm = first_frame_st_svm;
         idx = model_idxs{model_ind, 1};
-        X_ = permute(gather(feat_conv(:,:,:,idx(1))),[4,3,1,2]);
-        X_ = X_(:,:);
-        bbox_ = examples(idx(1),:);
-        pred_boxes = predict_bbox_regressor(bbox_reg.model, X_, bbox_);
-        result(To,:) = round(mean(pred_boxes,1));
+        [ svs_feats, svs_beta, kernerl_sigma, ~ ] = prep_eval_data( 1 );
+        xs_feats = squeeze( total_data{1,1,1,To}(:,:,:,idx(1)) );
+        first_frame_score = st_svm_eval(svs_feats, svs_beta, kernerl_sigma, xs_feats);
+%         fprintf('first frame score is %f\n',first_frame_score);
+%         fprintf('first frame score is %f\n',first_frame_score);
+%         fprintf('first frame score is %f\n',first_frame_score);
+%         fprintf('first frame score is %f\n',first_frame_score);
+%         fprintf('first frame score is %f\n',first_frame_score);
+        if(first_frame_score > st_svm.bbox_reg_score_threshold) % similar with first frame target
+            X_ = permute(gather(feat_conv(:,:,:,idx(1))),[4,3,1,2]);
+            X_ = X_(:,:);
+            bbox_ = examples(idx(1),:);
+            pred_boxes = predict_bbox_regressor(bbox_reg.model, X_, bbox_);
+            result(To,:) = round(mean(pred_boxes,1));
+        end
+        st_svm = st_svms{end,1};
     end
     
     %% Prepare training data
-    if(target_score>0)
+    if(target_score>st_svm.update_target_score_threshold )
         examples = gen_samples('radial', targetLoc, opts.svm_samples, opts, 0.1, 2);
 
 		feat_conv = mdnet_features_convX(net_conv, img, examples, opts);
-		feat_fc4 = mdnet_features_fc4(net_fc, feat_conv, opts);
+		%feat_fc4 = mdnet_features_fc4(net_fc, feat_conv, opts);
+        feat_fc4 = prep_feat_conv_data(feat_conv);
 		total_data{:,:,1,To} = feat_fc4(:,:,:,:);
 		total_data{:,:,2,To} = examples;
         total_data{:,:,3,To} = examples - repmat(targetLoc,[size(examples,1),1]); 
@@ -236,7 +279,7 @@ for To = 2:nFrames;
     %% structured svm update
     fprintf('target_score is %.12f\n',target_score);
     whether_process_new = false;
-    if(target_score>0)
+    if(target_score>st_svm.update_target_score_threshold )
         if(To>50 && mod(To,5)==0)
             whether_process_new = true;
         end
@@ -271,7 +314,8 @@ for To = 2:nFrames;
         rectangle('Position', result(To,:), 'EdgeColor', [1 0 0], 'Linewidth', 1);
         centerx = result(To-1,1) + result(To-1,3)/2 - opts.svm_eval_radius;
         centery = result(To-1,2) + result(To-1,4)/2 - opts.svm_eval_radius;
-        rectangle('Position', [centerx,centery,opts.svm_eval_radius*2,opts.svm_eval_radius*2],...
+        radius = (result(To-1,3) + result(To-1,4))/2 * trans_f;
+        rectangle('Position', [centerx,centery,radius*2,radius*2],...
             'Curvature',[1,1],'EdgeColor', [1 0 0], 'Linewidth', 1);%search circle
         set(gca,'position',[0 0 1 1]);
         

@@ -8,8 +8,8 @@
 clear;
 
 algorithmName = 'MDStruck';
-%algorithmName = 'MDNet';
-seqname = 'shaking';
+%galgorithmName = 'MDNet';
+seqname = 'soccer';
 conf = genConfig('otb',seqname);
 % conf = genConfig('vot2015','ball1');
 

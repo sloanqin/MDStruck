@@ -1,4 +1,4 @@
-function [target_loc] = choose_target_loc(target_locs)
+function [target_loc, model_ind] = choose_target_loc(target_locs)
 % plot_scores_map
 % plot 3D map of examples' scores
 %
@@ -6,6 +6,9 @@ function [target_loc] = choose_target_loc(target_locs)
 %   examples  - parameters of structured svm: support patterns and support vectors
 %   scores  - fc4 features and example boxes
 %   figure_ind  - index of figure to plot
+%
+% OUTPUT:
+%   model_ind  - index of model
 %
 % Sloan Qin, 2017
 % 
@@ -38,7 +41,7 @@ end
 
 votes_matrix = zeros(size(target_locs, 1), 1);
 votes2add = zeros(size(target_locs, 1), 1);
-votes_num = linspace(size(target_locs, 1), 1, size(target_locs, 1))
+votes_num = linspace(size(target_locs, 1), 1, size(target_locs, 1));
 votes_num(1) = 0;
 for i=1:size(target_locs, 1)
     ind = idx(:, i);
@@ -48,6 +51,7 @@ end
 
 [dd, votes_idx] = sort(votes_matrix, 'descend');
 target_loc = target_locs{votes_idx(1)};
+model_ind = votes_idx(1);
 return;
 
 end

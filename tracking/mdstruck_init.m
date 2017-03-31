@@ -39,4 +39,19 @@ st_svm.kernerl_m_sigma = 0.2;
 % SVM regularization parameter.
 st_svm.svmC = 10;
 
+% SVM model update target score threshold.
+st_svm.update_target_score_threshold = 0.05;
+
+% first_frame_st_svm target score threshold for bbox regression prediction.
+st_svm.bbox_reg_score_threshold = 0;
+
+% frame interval to replace the old model.
+st_svm.snapshot_interval = 25;
+
+% st_svm eval sample trans_f.
+st_svm.trans_f = 0.6;
+
+% st_svm eval sample scale_f.
+st_svm.scale_f = 1;
+
 end
