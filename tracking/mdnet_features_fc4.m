@@ -8,7 +8,8 @@ function [ feat ] = mdnet_features_fc4(net, ims, opts)
 n = size(ims,4);
 nBatches = ceil(n/opts.batchSize);
 
-net.layers = net.layers(1:2); % compute the relu of fc4
+%net.layers = net.layers(1:2); % compute the relu of fc4
+net.layers = net.layers(1); % compute fc4 without relu
 % add norm layer
 %{
 norm_layer.type = 'normalize';
