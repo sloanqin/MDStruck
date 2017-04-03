@@ -9,7 +9,7 @@ clear;
 
 algorithmName = 'MDStruck';
 %galgorithmName = 'MDNet';
-seqname = 'soccer';
+seqname = 'motorRolling';
 conf = genConfig('otb',seqname);
 % conf = genConfig('vot2015','ball1');
 

@@ -39,12 +39,14 @@ switch (type)
         samples(:,3:4) = samples(:,3:4) .* opts.scale_factor.^(rand(n,2)*4-2);
         samples(:,3:4) = samples(:,3:4) .* repmat(opts.scale_factor.^(scale_f*rand(n,1)),1,2);
     case 'radial' % qyy add
-		rstep = double(opts.svm_update_radius)/opts.svm_nr;
+		radius = opts.svm_update_radius;
+		%radius = trans_f * round(mean(bb(3:4))) * 0.5;
+		rstep = double(radius)/opts.svm_nr;
 		tstep = 2*pi/opts.svm_nt;
-		radius = (rstep:rstep:opts.svm_update_radius);
+		radius_vec = (rstep:rstep:radius);
 		angle = (0:tstep:2*pi-0.0000001) + repmat([tstep/2,0],[1,opts.svm_nt/2]);
-		dx = [0;reshape(radius' * cos(angle),[],1)];
-		dy = [0;reshape(radius' * sin(angle),[],1)];
+		dx = [0;reshape(radius_vec' * cos(angle),[],1)];
+		dy = [0;reshape(radius_vec' * sin(angle),[],1)];
         samples(:,1) = samples(:,1) + dx;
         samples(:,2) = samples(:,2) + dy;
         samples(:,3:4) = samples(:,3:4) .* repmat(opts.scale_factor.^(scale_f*max(-1,min(1,0.5*randn(n,1)))),1,2);

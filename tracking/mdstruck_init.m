@@ -40,10 +40,10 @@ st_svm.kernerl_m_sigma = 0.2;
 st_svm.svmC = 10;
 
 % SVM model update target score threshold.
-st_svm.update_target_score_threshold = 0.05;
+st_svm.update_target_score_threshold = 0.01;
 
 % first_frame_st_svm target score threshold for bbox regression prediction.
-st_svm.bbox_reg_score_threshold = 0;
+st_svm.bbox_reg_score_threshold = 0.1;
 
 % frame interval to replace the old model.
 st_svm.snapshot_interval = 25;

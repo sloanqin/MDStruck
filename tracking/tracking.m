@@ -6,8 +6,8 @@
 %
 
 clear;
-otb50 = importdata('./dataset/OTB50_4.txt');
-algorithmName = 'MDStruck9';
+otb50 = importdata('./dataset/OTB50_5_5.txt');
+algorithmName = 'MDStruck13';
 for i=1:size(otb50,1)
     seqname = otb50{i,1};
     conf = genConfig('otb',seqname);
